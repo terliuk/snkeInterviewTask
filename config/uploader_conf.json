@@ -2,6 +2,7 @@
   "host" : "localhost",
   "port" : 1234,
   "local_data_dir" : "/home/terliuk/interview_task/snkeAdvanced/data_files/",
+  "semaphore" : ".sem",
   "username": "dummyuser",
   "password": "dummypassword"
 }
