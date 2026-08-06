@@ -1,6 +1,7 @@
 {
-  "destination_url": "https://localhost:999/upload/",
+  "destination_url": "https://localhost:999/cgi-bin/file_handler.py",
   "source_dir" : "/home/terliuk/interview_task/snkeAdvanced/data_files/",
+  "trash_dir" : "/home/terliuk/interview_task/snkeAdvanced/trash_data_files/",
   "semaphore_ext" : ".sem",
   "username": "dummyuser",
   "password": "dummypassword"
