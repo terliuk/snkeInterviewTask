@@ -99,8 +99,11 @@ class UploaderApp:
                                           headers=header,
                                           auth=(self.user, self.password))
             self.logger.debug(f"POST request response: {response.status_code} text {response.text}")
+        elif ((response.status_code == 200) and
+              (response.headers.get("X-Checksum-SHA256","") == self._cur_file_sha256)):
+            self.logger.info(f"Remote file already exists with matching checksum, skipping upload: {file_path}")
         else:
-            self.logger.warning(f"Remode file already exists, skipping: {file_path}")
+            self.logger.warning(f"Remote file already exists, skipping: {file_path}")
     
     def verify_file(self, file_path : Path):
         """

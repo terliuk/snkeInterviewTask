@@ -20,10 +20,16 @@ def respond(status_line, headers={"Content-Type": "text/plain"}, body=""):
 def main():
     # checking that filename exists
     filename = os.environ.get("HTTP_X_FILENAME", "")
+
     if not filename:
         respond("400 Bad Request", body = "400 Bad Request: missing HTTP_X_FILENAME header")
         return
     
+    # just because...
+    if filename == "coffee.dat":
+        respond("418 I'm a teapot", body = "418 I'm a teapot: coffee.dat is not allowed")
+        return
+
     method = os.environ.get("REQUEST_METHOD", "")
     if method == "HEAD":
         head_get_func(filename, get=False)
@@ -31,6 +37,8 @@ def main():
         head_get_func(filename, get=True)
     elif method == "POST":
         post_func(filename)
+    elif method == "PUT":
+        post_func(filename, put=True)
     else:
         respond("405 Method Not Allowed", body = "405 Method Not Allowed")
         return
@@ -52,7 +60,6 @@ def head_get_func(filename, get=False):
             sha256_checksum = f.read().strip()
     else:
         sha256_checksum = hashlib.sha256(open(dest_path, "rb").read()).hexdigest() #
-     
     size = os.path.getsize(dest_path)
     header = {"Content-Type": "application/octet-stream",
               "X-Content-Length": str(size),
@@ -64,7 +71,7 @@ def head_get_func(filename, get=False):
             sys.stdout.flush()
             sys.stdout.buffer.write(f.read())
 
-def post_func(filename):
+def post_func(filename, put=False):
     """
     Handle a POST request to upload a file.
     """
@@ -77,9 +84,11 @@ def post_func(filename):
     # checking whether file exists
     filename = os.path.basename(filename)
     dest_path = UPLOAD_DIR / filename
-    if dest_path.exists():
-        respond("409 Conflict", body = f"409 Conflict: file {filename} already exists")
-        return
+    if not put:
+        # mimics inability of POST to overwrite existing files
+        if dest_path.exists():
+            respond("409 Conflict", body = f"409 Conflict: file {filename} already exists")
+            return
     
     # checking checksums
     expected_checksum = os.environ.get("HTTP_X_CHECKSUM_SHA256")
@@ -90,13 +99,18 @@ def post_func(filename):
                 f"expected: {expected_checksum}, actual: {actual_checksum}," \
                 f" content_length: {content_length}")
         return
-    
     with open(dest_path, "wb") as f:
         f.write(body)
     with open(dest_path.with_suffix(dest_path.suffix+".sha256"), "w") as f:
         f.write(actual_checksum+"\r\n")
+    if not put:
+        body_ = f"File {filename} uploaded successfully"\
+                f" to {dest_path}. Checksum: {actual_checksum}"
+        respond("201 Created", body = body_)
+    else:
+        body_ = f"File {filename} overwritten successfully"\
+                f" at {dest_path}. Checksum: {actual_checksum}"
+        respond("204 No Content", body = body_)
 
-    respond("201 Created", body = f"File {filename} uploaded successfully to {dest_path}. Checksum: {actual_checksum}")
-    
 if __name__ == "__main__":
     main()
