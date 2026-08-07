@@ -7,6 +7,8 @@ from time import time, sleep
 import hashlib
 import shutil
 from copy import deepcopy
+from collections import deque
+from typing import Optional
 
 class UploadState(Enum):
     IDLE         = 0
@@ -21,9 +23,9 @@ class UploadState(Enum):
 @dataclass(frozen=True)
 class UploadConfig:
     source_dir: Path
-    trash_dir: Path | None
     destination_url: str
-    semaphore_ext: str | None = None
+    semaphore_ext: Optional[str] = None
+    trash_dir: Optional[Path] = None
 
 class UploaderApp:
     def __init__( self, 
@@ -65,7 +67,7 @@ class UploaderApp:
             self.logger.warning("UploaderApp initialized without user credentials. "
                                 "Uploads may fail if authentication is required.")
         # files that were staged
-        self.staged_files = []
+        self.staged_files = deque()
 
         # temporary variables to hold info about current file
         self.state = UploadState.IDLE
@@ -106,7 +108,7 @@ class UploaderApp:
               self.logger.debug("No more files to upload, returning to WAIT state.")
               self.state = UploadState.WAIT
           else:
-              self.current_file = self.staged_files.pop(0)
+              self.current_file = self.staged_files.popleft()
               self._cur_file_sha256 = hashlib.sha256(open(self.current_file, "rb").read()).hexdigest()
               self.logger.debug(f"Processing file: {self.current_file}")
               self.state = UploadState.UPLOAD
@@ -191,7 +193,7 @@ class UploaderApp:
                   'X-Filename': file_path.name}
         
         if response.status_code == 404:
-            self.logger.info(f"Remote is emtpy, uploading: {file_path}")        
+            self.logger.info(f"Remote is empty, uploading: {file_path}")        
             with open(file_path, 'rb') as f:
                 response = requests.post(self.config.destination_url,
                                           data=f,

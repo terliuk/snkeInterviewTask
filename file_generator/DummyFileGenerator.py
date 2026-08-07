@@ -5,6 +5,7 @@ import logging
 import time
 import hashlib
 import numpy as np
+from typing import Optional
 
 
 @dataclass(frozen=True, eq=True)
@@ -21,8 +22,8 @@ class FileWriterConfig:
     """
     output_dir: Path
     chunk_size: int 
-    semaphore_ext: str
     write_interval: float
+    semaphore_ext: Optional[str] = None
 
 
 @dataclass(frozen=True, eq=True)
