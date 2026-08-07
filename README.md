@@ -1,6 +1,8 @@
-# Snke technical task
+# Snke technical task solution
 
-Interview task for Advanced Software Developer. 
+by Andrii Terliuk
+Interview task solution for Advanced Software Developer position at Snke. 
+
 
 ## Task
 * Define constraints for handling sensitive patient data
@@ -31,6 +33,8 @@ In order to avoid revealing these details to external parties, the following con
   
 ### Upload App
 
+#### General idea
+
 Upload App is written as a python class `uploader/UploaderApp.py` with a state machine with following states:
 * `IDLE` - the process is not yet started or was interrupted
 * `WAIT` - adds timeout between asking file system for files to avoid not necessary operations
@@ -44,6 +48,35 @@ Upload App is written as a python class `uploader/UploaderApp.py` with a state m
 * `VERIFY` - verifies remote SHA256 to confirm that the file was correctly transferred (probably redundant)
 * `REMOVELOCAL` - remove local file after successful upload (or move to trash), run if `VERIFY` is success
 * `REMOVEREMOTE` - use `DELETE` requests to remove file from remote, run if `VERIFY` failed
+
+Request `PATCH` was not used in the Upload App, since patch depends on details of how the data is generated. Given that files are expected to be removed from the local storage after successful upload, i do not expect that files will be modified after they are written. In principle, this can be implemented with more information about the data format is given. 
+
+
+#### Example usage
+
+In order to run the uploader, the helper script `run_upload_app.py` was implemented. Usage: 
+```
+python3 run_upload_app.py -c ./config/uploader_conf.json
+```
+Example of configuration file 
+```
+{
+  "destination_url": "https://localhost:999/cgi-bin/file_handler.py",
+  "source_dir" : "/home/terliuk/interview_task/snkeAdvanced/data_files/",
+  "trash_dir" : "/home/terliuk/interview_task/snkeAdvanced/trash_data_files/",
+  "semaphore_ext" : ".sem",
+  "username": "dummyuser",
+  "password": "dummypassword"
+}
+```
+- `destination_url` - address of the remote server to upload files
+- `source_dir` - local storage folder
+- `trash_dir` - optional, if provided - files will be moved to trash folder instead of running unlink / remove command
+- `semaphore_ext` - optional - if semaphore extension is provided, only files with existing semaphore file will be transferred
+- `username` and `password` - authentication for remote server  
+
+The uploader app supports writing and displaying logs with different levels of verbosity. 
+
 ### Helper apps
 
 In order to facilitate development and debugging, two separate programs / scripts were written:
@@ -52,4 +85,15 @@ In order to facilitate development and debugging, two separate programs / script
 
 #### Dummy file generator
 
+A simple file generator `file_generator/DummyFileGenerator.py` was created to mimic regular file appearance. It takes JSONs for patient data to generate hashed file name. At pre-defined intervals, it writes random stream of bytes of a given size to output files and generates a semaphore file to indicate that the file is ready for transfer. 
+
+Usage
+```
+python3 run_dummy_generator.py -f ./config/filegen_conf.json -p ./config/patient.json
+```
+
 #### Remote web server 
+
+Remote web-server application was simulated by python CGI script provided in `web_server_script/file_handler.py`. 
+
+It implements basic functionality of required `HEAD`, `GET`, `POST`, `PUT`, `DELETE` requests. The file handler is run on apache2 HTTPS werver with basic authentication procedure via httpspw.
