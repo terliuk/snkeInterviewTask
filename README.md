@@ -94,6 +94,6 @@ python3 run_dummy_generator.py -f ./config/filegen_conf.json -p ./config/patient
 
 #### Remote web server 
 
-Remote web-server application was simulated by python CGI script provided in `web_server_script/file_handler.py`. 
+Remote web-server application was simulated by python CGI script provided in `web_server_script/file_handler.py`.
 
-It implements basic functionality of required `HEAD`, `GET`, `POST`, `PUT`, `DELETE` requests. The file handler is run on apache2 HTTPS werver with basic authentication procedure via httpspw.
+It implements basic functionality of required `HEAD`, `GET`, `POST`, `PUT`, `DELETE` requests for testing of the uploader. The file handler is run on apache2 HTTPS server with basic authentication procedure with htpasswd file.
