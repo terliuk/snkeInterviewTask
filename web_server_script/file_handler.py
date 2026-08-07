@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-import cgi
 import hashlib
 import os
 import sys
 from pathlib import Path
 
-from numpy import size
 UPLOAD_DIR = Path("/var/www/html/upload")
 
-def respond(status_line, headers={"Content-Type": "text/plain"}, body=""):
+def respond(status_line, headers=None, body=""):
+    if headers is None:
+        headers = {"Content-Type": "text/plain"}
     sys.stdout.write(f"Status: {status_line}\r\n")
     if headers:
         for key, value in headers.items():
@@ -90,9 +90,10 @@ def head_get_func(filename, get=False):
             sha256_checksum = f.read().strip()
     else:
         sha256_checksum = hashlib.sha256(open(dest_path, "rb").read()).hexdigest() #
-    size = os.path.getsize(dest_path)
+    file_size = os.path.getsize(dest_path)
     header = {"Content-Type": "application/octet-stream",
-              "X-Content-Length": str(size),
+              "Content-Length": str(file_size),
+              "X-Content-Length": str(file_size),
               "X-Checksum-SHA256": sha256_checksum,
               "X-Filename": filename}
     respond("200 OK", headers = header)
@@ -105,7 +106,14 @@ def post_func(filename, put=False):
     """
     Handle a POST or PUT request to upload a file
     """
-    content_length = int(os.environ.get("CONTENT_LENGTH", 0))
+
+    content_length = os.environ.get("CONTENT_LENGTH", 0)
+    try:
+        content_length = int(content_length)
+    except ValueError:
+        respond("400 Bad Request", body = "400 Bad Request: invalid CONTENT_LENGTH")
+        return
+
     if content_length == 0:
         respond("400 Bad Request", body = "400 Bad Request: empty body")
         return
@@ -140,7 +148,8 @@ def post_func(filename, put=False):
     else:
         body_ = f"File {filename} overwritten successfully"\
                 f" at {dest_path}. Checksum: {actual_checksum}"
-        respond("204 No Content", body = body_)
+        respond("200 OK", body = body_)
 
 if __name__ == "__main__":
     main()
+
