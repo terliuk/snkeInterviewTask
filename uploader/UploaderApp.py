@@ -107,6 +107,7 @@ class UploaderApp:
               self.state = UploadState.WAIT
           else:
               self.current_file = self.staged_files.pop(0)
+              self._cur_file_sha256 = hashlib.sha256(open(self.current_file, "rb").read()).hexdigest()
               self.logger.debug(f"Processing file: {self.current_file}")
               self.state = UploadState.UPLOAD
 
@@ -183,7 +184,6 @@ class UploaderApp:
         self.logger.debug(f"HEAD request response: {response.status_code} "\
                           f"for file: {file_path}")
 
-        self._cur_file_sha256 = hashlib.sha256(open(file_path, "rb").read()).hexdigest()
         ## 
         header = {'Content-Type': 'application/octet-stream',
                   'Content-Length': str(file_path.stat().st_size),
