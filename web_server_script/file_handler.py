@@ -24,7 +24,14 @@ def main():
     if not filename:
         respond("400 Bad Request", body = "400 Bad Request: missing HTTP_X_FILENAME header")
         return
-    
+    if (filename.find("/")  != -1 or
+        filename.find("\\") != -1 or 
+        filename.find("..") != -1 or 
+        filename.find("~")  != -1 or 
+        filename.find("*")  != -1 or 
+        filename.find("?")  != -1 ):
+        respond("400 Bad Request", body = "400 Bad Request: invalid filename")
+        return
     # just because...
     if filename == "coffee.dat":
         respond("418 I'm a teapot", body = "418 I'm a teapot: coffee.dat is not allowed")
@@ -39,11 +46,34 @@ def main():
         post_func(filename)
     elif method == "PUT":
         post_func(filename, put=True)
+    elif method == "DELETE":
+        delete_func(filename)
+        return
+    elif method == "PATCH":
+        respond("405 Method Not Allowed", body = "405 Method Not Allowed: PATCH is not allowed")
+        return
     else:
         respond("405 Method Not Allowed", body = "405 Method Not Allowed")
         return
 
-   
+def delete_func(filename):
+    """
+    Handle a DELETE request to remove a file.
+    """
+    filename = os.path.basename(filename)
+    dest_path = UPLOAD_DIR / filename
+    if not dest_path.exists():
+        respond("404 Not Found", body = f"File {filename} does not exist.")
+        return
+    try:
+        dest_path.unlink()
+        sha_file_path = dest_path.with_suffix(dest_path.suffix+".sha256")
+        if sha_file_path.is_file():
+            sha_file_path.unlink()
+        respond("200 OK", body = f"File {filename} deleted successfully.")
+    except Exception as e:
+        respond("500 Internal Server Error", body = f"Error deleting file {filename}: {str(e)}")
+
 def head_get_func(filename, get=False):
     """
     Handle a HEAD or GET request to check if a file exists.
@@ -73,7 +103,7 @@ def head_get_func(filename, get=False):
 
 def post_func(filename, put=False):
     """
-    Handle a POST request to upload a file.
+    Handle a POST or PUT request to upload a file
     """
     content_length = int(os.environ.get("CONTENT_LENGTH", 0))
     if content_length == 0:

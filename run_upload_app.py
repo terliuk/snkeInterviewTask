@@ -31,5 +31,5 @@ uploader = UploaderApp(config=uploader_config,
                         user=__user, 
                         password=__password,
                         logfile = "uploader.log",
-                        printlevel=logging.DEBUG,
-                        loglevel=logging.DEBUG)
+                        printlevel=logging.INFO,
+                        loglevel=logging.INFO)
