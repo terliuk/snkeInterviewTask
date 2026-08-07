@@ -33,3 +33,5 @@ if __name__ == "__main__":
                             logfile = "uploader.log",
                             printlevel=logging.INFO,
                             loglevel=logging.INFO)
+
+    uploader.run()
