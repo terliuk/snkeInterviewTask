@@ -31,7 +31,7 @@ In order to avoid revealing these details to external parties, the following con
   * ideally avoid descriptive names like `data_Doe_embarrasing_000.dat` and best do some sort of hash `data_01a7eef_000.dat` with option of storing personal metadata inside, optionally with encryption or other access control layers
 
   
-### Upload App
+### Uploader App
 
 #### General idea
 
