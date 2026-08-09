@@ -27,6 +27,20 @@ class UploadConfig:
     semaphore_ext: Optional[str] = None
     trash_dir: Optional[Path] = None
 
+
+def CalculateSHA256(file_path: Path,
+                    chunk_size: int = 8192) -> str:
+    """
+    Calculate SHA256 checksum of a file in chunks
+    to handle large files.
+    """
+    sha256_hash = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for chunk in iter(lambda: f.read(chunk_size), b""):
+            sha256_hash.update(chunk)
+    return sha256_hash.hexdigest()
+
+
 class UploaderApp:
     def __init__( self, 
                   config: UploadConfig, 
@@ -193,25 +207,35 @@ class UploaderApp:
                   'X-Filename': file_path.name}
         
         if response.status_code == 404:
-            self.logger.info(f"Remote is empty, uploading: {file_path}")        
-            with open(file_path, 'rb') as f:
-                response = requests.post(self.config.destination_url,
-                                          data=f,
-                                          headers=header,
-                                          auth=self._auth_cmd)
-            self.logger.debug(f"POST request response: {response.status_code}"\
-                              f" text {response.text}")
+            self.logger.info(f"Remote is empty, uploading: {file_path}")
+            response = None
+            try:
+                # sometimes response throws an exception if server does not
+                # read the file
+                with open(file_path, 'rb') as f:
+                    response = requests.post(self.config.destination_url,
+                                            data=f,
+                                            headers=header,
+                                            auth=self._auth_cmd)
+                self.logger.debug(f"POST request response: {response.status_code}"\
+                                f" text {response.text}")
+            except Exception as e:
+                self.logger.error(f"Error during POST request for file {file_path}: {str(e)}")
         elif ((response.status_code == 200) and 
               (response.headers.get("X-Checksum-SHA256","") != self._cur_file_sha256)):
             self.logger.warning(f"Remote file with different checksum "\
                                 f", overwriting: {file_path}")
-            with open(file_path, 'rb') as f:
-                response = requests.put(self.config.destination_url,
-                                         data=f,
-                                         headers=header,
-                                         auth=self._auth_cmd)
-            self.logger.debug(f"PUT request response: {response.status_code} "\
-                              f"text {response.text}")
+            response = None
+            try:
+                with open(file_path, 'rb') as f:
+                    response = requests.put(self.config.destination_url,
+                                            data=f,
+                                            headers=header,
+                                            auth=self._auth_cmd)
+                self.logger.debug(f"PUT request response: {response.status_code} "\
+                                f"text {response.text}")
+            except Exception as e:
+                self.logger.error(f"Error during PUT request for file {file_path}: {str(e)}")
         elif ((response.status_code == 200) and
               (response.headers.get("X-Checksum-SHA256","") == self._cur_file_sha256)):
             self.logger.info(f"Remote exists with matching checksum"\

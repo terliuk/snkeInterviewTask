@@ -89,7 +89,7 @@ def head_get_func(filename, get=False):
         with open(sha_file_path, "r") as f:
             sha256_checksum = f.read().strip()
     else:
-        sha256_checksum = hashlib.sha256(open(dest_path, "rb").read()).hexdigest() #
+        hashlib.sha256(open(dest_path, "rb").read()).hexdigest() #
     file_size = os.path.getsize(dest_path)
     header = {"Content-Type": "application/octet-stream",
               "Content-Length": str(file_size),
@@ -117,7 +117,6 @@ def post_func(filename, put=False):
     if content_length == 0:
         respond("400 Bad Request", body = "400 Bad Request: empty body")
         return
-    body = sys.stdin.buffer.read(content_length)
 
     # checking whether file exists
     filename = os.path.basename(filename)
@@ -127,10 +126,11 @@ def post_func(filename, put=False):
         if dest_path.exists():
             respond("409 Conflict", body = f"409 Conflict: file {filename} already exists")
             return
-    
+    # ToDo - implement streaming to avoid loading entire file into memory
+    message_body = sys.stdin.buffer.read(content_length)
     # checking checksums
-    expected_checksum = os.environ.get("HTTP_X_CHECKSUM_SHA256")
-    actual_checksum = hashlib.sha256(body).hexdigest()
+    expected_checksum = os.environ.get("HTTP_X_CHECKSUM_SHA256","")
+    actual_checksum = hashlib.sha256(message_body).hexdigest()
     if expected_checksum and expected_checksum != actual_checksum:
         respond("400 Bad Request", 
                 body = f"400 Bad Request: checksum mismatch, "\
@@ -138,7 +138,7 @@ def post_func(filename, put=False):
                 f" content_length: {content_length}")
         return
     with open(dest_path, "wb") as f:
-        f.write(body)
+        f.write(message_body)
     with open(dest_path.with_suffix(dest_path.suffix+".sha256"), "w") as f:
         f.write(actual_checksum+"\r\n")
     if not put:
