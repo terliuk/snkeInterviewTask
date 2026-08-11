@@ -123,7 +123,8 @@ class UploaderApp:
               self.state = UploadState.WAIT
           else:
               self.current_file = self.staged_files.popleft()
-              self._cur_file_sha256 = hashlib.sha256(open(self.current_file, "rb").read()).hexdigest()
+              self._cur_file_sha256 = CalculateSHA256(self.current_file)
+              #hashlib.sha256(open(self.current_file, "rb").read()).hexdigest()
               self.logger.debug(f"Processing file: {self.current_file}")
               self.state = UploadState.UPLOAD
 
