@@ -85,11 +85,12 @@ def head_get_func(filename, get=False):
         respond("404 Not Found", body = f"File {filename} does not exist.")
         return
     sha_file_path = dest_path.with_suffix(dest_path.suffix+".sha256")
+    sha256_checksum = None
     if sha_file_path.is_file():
         with open(sha_file_path, "r") as f:
             sha256_checksum = f.read().strip()
     else:
-        hashlib.sha256(open(dest_path, "rb").read()).hexdigest() #
+        sha256_checksum = hashlib.sha256(open(dest_path, "rb").read()).hexdigest() #
     file_size = os.path.getsize(dest_path)
     header = {"Content-Type": "application/octet-stream",
               "Content-Length": str(file_size),
